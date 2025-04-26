@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -27,6 +28,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -93,67 +95,25 @@ fun DocScanScreen(
         val context = LocalContext.current
         val scanState = viewModel.scanState.collectAsState().value
 
-        /*
+
         when(scanState) {
             is ScanState.Error -> {
-                Toast.makeText(
-                    context,
-                    "Error ${scanState.message}",
-                    Toast.LENGTH_LONG
-                ).show()
+                LaunchedEffect(scanState) {
+                    Toast.makeText(
+                        context,
+                        "Error ${scanState.message}",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
             }
-            ScanState.Idle -> TODO()
+            ScanState.Idle -> {
+            }
 
             ScanState.Loading -> {
                 CircularProgressIndicator()
             }
             is ScanState.Success -> {
-                if (scanState.result.pdfUri != null) {
-                    Toast.makeText(
-                        context,
-                        "PDF created with ${scanState.result.pageCount} pages",
-                        Toast.LENGTH_LONG
-                    ).show()
-                    savePdf(scanState.result.pdfUri)
-                    //Text("PDF created with ${scanState.result.pageCount} pages")
-                }
-
-                ScanItemList(
-                    itemUris = scanState.result.imageUris,
-                    scrollBehavior = scrollBehavior,
-                    innerPadding = innerPadding
-                )
-            }
-
-        }
-
-        */
-        LazyColumn(
-            modifier = modifier
-                .background(androidx.compose.ui.graphics.Color.Black)
-                .padding(innerPadding)
-                .nestedScroll(scrollBehavior.nestedScrollConnection),
-            verticalArrangement = Arrangement.SpaceAround,
-            horizontalAlignment = Alignment.CenterHorizontally,
-            //  contentPadding = PaddingValues(vertical = 32.dp)
-        ) {
-            when (scanState) {
-                is ScanState.Loading -> {
-                    item {
-                        CircularProgressIndicator()
-                    }
-                }
-
-                is ScanState.Success -> {
-                    items(scanState.result.imageUris) { uri ->
-                        AsyncImage(
-                            model = uri,
-                            contentDescription = "Scanned Document",
-                            contentScale = ContentScale.FillWidth,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
-
+                LaunchedEffect(scanState.result.pdfUri) {
                     if (scanState.result.pdfUri != null) {
                         Toast.makeText(
                             context,
@@ -164,22 +124,18 @@ fun DocScanScreen(
                         //Text("PDF created with ${scanState.result.pageCount} pages")
                     }
                 }
-
-                is ScanState.Error -> {
-                    item {
-                        Text("Error: ${scanState.message}")
-                    }
-                }
-
-                is ScanState.Idle -> {
-
-                }
+                ScanItemList(
+                    itemUris = scanState.result.imageUris,
+                    scrollBehavior = scrollBehavior,
+                    innerPadding = innerPadding
+                )
             }
+
         }
     }
 }
 
-/*
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ScanItemList(
@@ -188,8 +144,6 @@ fun ScanItemList(
     innerPadding: PaddingValues,
     modifier: Modifier = Modifier
 ){
-
-
     LazyColumn(
         modifier = modifier
             .background(androidx.compose.ui.graphics.Color.Black)
@@ -199,8 +153,7 @@ fun ScanItemList(
         horizontalAlignment = Alignment.CenterHorizontally,
         //  contentPadding = PaddingValues(vertical = 32.dp)
     ) {
-
-        items(itemUris) { uri ->
+        items(itemUris.filterNotNull()) { uri ->
             AsyncImage(
                 model = uri,
                 contentDescription = "Scanned Document",
@@ -208,21 +161,23 @@ fun ScanItemList(
                 modifier = Modifier.fillMaxWidth()
             )
         }
-
-
     }
 }
-*/
+
+
+
 
 @Preview(showBackground = true,
     showSystemUi = true)
 @Composable
 fun PreviewDocScanScreen(
 ){
-    /* DocScanScreen(
+     DocScanScreen(
+         viewModel = ScannerViewModel(),
          onScanClicked = {},
+         savePdf = {},
          modifier = Modifier
              .fillMaxSize()
 
-     )*/
+     )
 }

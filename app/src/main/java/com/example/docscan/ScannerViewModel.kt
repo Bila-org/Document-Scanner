@@ -37,7 +37,7 @@ class ScannerViewModel : ViewModel() {
 
     private val options = GmsDocumentScannerOptions.Builder()
         .setGalleryImportAllowed(true)
-        .setPageLimit(3)
+        .setPageLimit(5)
         .setResultFormats(RESULT_FORMAT_JPEG, RESULT_FORMAT_PDF)
         .setScannerMode(SCANNER_MODE_FULL)
         .build()
