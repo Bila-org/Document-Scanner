@@ -19,7 +19,6 @@ import java.io.FileOutputStream
 
 class MainActivity : ComponentActivity() {
 
-
     val scannerLauncher = registerForActivityResult(
         ActivityResultContracts.StartIntentSenderForResult()
     ) {
