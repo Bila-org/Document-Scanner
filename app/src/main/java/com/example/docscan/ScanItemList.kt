@@ -33,7 +33,6 @@ fun ScanItemList(
             .nestedScroll(scrollBehavior.nestedScrollConnection),
         verticalArrangement = Arrangement.SpaceAround,
         horizontalAlignment = Alignment.CenterHorizontally,
-        //  contentPadding = PaddingValues(vertical = 32.dp)
     ) {
         items(itemUris.filterNotNull()) { uri ->
             AsyncImage(
