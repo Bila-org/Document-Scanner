@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- Access to internal files directory -->
+    <files-path name="internal_pdfs" path="." />
+
+</paths>

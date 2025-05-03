@@ -3,8 +3,15 @@ package com.example.docscan
 import android.app.Activity
 import android.content.Intent
 import android.net.Uri
+import android.widget.Toast
+import androidx.core.content.ContextCompat.startActivity
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions
 import com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions.RESULT_FORMAT_JPEG
 import com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions.RESULT_FORMAT_PDF
@@ -15,6 +22,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.io.File
+import java.io.FileOutputStream
+import java.util.Scanner
 
 
 data class DocScanResult(
@@ -30,24 +40,18 @@ sealed interface ScanState{
     data class Error(val message: String): ScanState
 }
 
-class ScannerViewModel : ViewModel() {
+class ScannerViewModel(
+    private val docScanRepository: DocScanRepository
+) : ViewModel() {
 
     private val _scanState = MutableStateFlow<ScanState>(ScanState.Idle)
     val scanState : StateFlow<ScanState> = _scanState.asStateFlow()
 
-    private val options = GmsDocumentScannerOptions.Builder()
-        .setGalleryImportAllowed(true)
-        .setPageLimit(5)
-        .setResultFormats(RESULT_FORMAT_JPEG, RESULT_FORMAT_PDF)
-        .setScannerMode(SCANNER_MODE_FULL)
-        .build()
-
-
-    val scanner = GmsDocumentScanning.getClient(options)
-
+    private val _pdfUriState = MutableStateFlow<Uri?>(null)
+    val pdfUriState :StateFlow<Uri?> = _pdfUriState.asStateFlow()
 
     fun handleScanResult(data: Intent?){
-        _scanState.value = ScanState.Loading
+  //      _scanState.value = ScanState.Loading
         viewModelScope.launch{
             try{
                 val scanResult = GmsDocumentScanningResult.fromActivityResultIntent(data)
@@ -72,8 +76,37 @@ class ScannerViewModel : ViewModel() {
 
     }
 
+    fun savePdf(sourceUri: Uri){
+        viewModelScope.launch {
+            val isSuccess = docScanRepository.savePdf(sourceUri)
+            if(!isSuccess){
+                _scanState.value = ScanState.Error("Failed to save PDF")
+            }
+            else{
+                getPdfUri()
+            }
+        }
+    }
+
     fun resetState(){
         _scanState.value = ScanState.Idle
     }
 
+    private fun getPdfUri(){
+        val pdfUri = docScanRepository.getPdfUri()
+        if (pdfUri != null) {
+            _pdfUriState.value = pdfUri
+        }
+    }
+
+
+    companion object {
+        val Factory: ViewModelProvider.Factory = viewModelFactory {
+            initializer {
+                val application = (this[APPLICATION_KEY] as DocScanApplication)
+                val docScanRepository = application.docScanRepository
+                ScannerViewModel(docScanRepository = docScanRepository)
+            }
+        }
+    }
 }
