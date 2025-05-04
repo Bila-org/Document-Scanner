@@ -6,13 +6,17 @@ import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DocumentScanner
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.Button
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -25,34 +29,65 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.example.docscan.ui.theme.DocScanTheme
+import kotlinx.coroutines.launch
 
+
+@Preview(showBackground = true)
+@Composable
+private fun DocScanMainPreview() {
+    DocScanTheme(darkTheme = true) {
+        DocScanMain(
+            screenState = ScannerViewModel.ScreenState(
+                hasSavedPdf = true,
+                isLoading = true,
+                pdfUri = Uri.parse(""),
+            ),
+            onStartScan = {},
+            onOpenPdf = {},
+            onBackClick = {}
+        )
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DocScanScreen(
     viewModel: ScannerViewModel,
     onScanClicked: () -> Unit,
-    savePdf: (Uri) -> Unit,
-    onBackClick: ()-> Unit = {},
-    modifier: Modifier
+    onBackClick: () -> Unit,
+    onOpenPdf: (Uri) -> Unit
 ) {
+    //api call response
+    //view interaction
+    //
 
+    DocScanMain(
+        screenState = viewModel.screenState.collectAsState().value,
+        onStartScan = onScanClicked,
+        onBackClick = onBackClick,
+        onOpenPdf = onOpenPdf
+    )
+}
+
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DocScanMain(
+    screenState: ScannerViewModel.ScreenState,
+    onStartScan: () -> Unit,
+    onOpenPdf: (Uri) -> Unit,
+    onBackClick: () -> Unit,
+) {
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-    val snackbarHostState = remember {SnackbarHostState()}
-
-
-    LaunchedEffect(Unit) {
-        viewModel.snackbarEvent.collect {message ->
-            snackbarHostState.showSnackbar(message)
-        }
-    }
+    val snackbarHostState = remember { SnackbarHostState() }
 
     Scaffold(
         topBar = {
@@ -61,7 +96,7 @@ fun DocScanScreen(
                     Row(
                         horizontalArrangement = Arrangement.Center,
                         verticalAlignment = Alignment.CenterVertically
-                    ){
+                    ) {
                         Icon(
                             imageVector = Icons.Default.DocumentScanner,
                             contentDescription = "Document Scan App"
@@ -78,9 +113,7 @@ fun DocScanScreen(
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = {
-                    onScanClicked()
-                },
+                onClick = onStartScan,
             ) {
                 Icon(
                     imageVector = Icons.Default.Search,
@@ -93,65 +126,44 @@ fun DocScanScreen(
             SnackbarHost(hostState = snackbarHostState)
         }
 
-    ) {innerPadding ->
+    ) { innerPadding ->
         BackHandler {
             onBackClick()
         }
 
-        val context = LocalContext.current
-        val scanState = viewModel.scanState.collectAsState().value
-        val pdfUriState = viewModel.pdfUriState.collectAsState().value
+        Box(
+            modifier = Modifier
+                .padding(innerPadding)
+                .fillMaxSize(),
+            contentAlignment = Alignment.Center,
+        ) {
+            Column(
 
-        when(scanState) {
-            is ScanState.Error -> {}
-            ScanState.Idle -> {}
+            ) {
+                if (screenState.isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.padding(innerPadding)
+                    )
+                }
 
-            ScanState.Loading -> {
-                CircularProgressIndicator(
-                    modifier = Modifier.padding(innerPadding)
-                )
-            }
+                if (screenState.pdfUri != null) {
+                    Button(
+                        onClick = {
+                            onOpenPdf(screenState.pdfUri)
+                        }) {
+                        Text(text = "Open PDF")
+                    }
+                    Button(onClick = {
 
-            is ScanState.Success -> {
-                LaunchedEffect(scanState.result.pdfUri) {
-                    if (scanState.result.pdfUri != null) {
-                        viewModel.showSnackbar("PDF created with ${scanState.result.pageCount} pages")
-                        savePdf(scanState.result.pdfUri)
+                    }) {
+                        Text(text = "Share PDF")
                     }
                 }
-                ScanItemList(
-                    itemUris = scanState.result.imageUris,
-                    scrollBehavior = scrollBehavior,
-                    innerPadding = innerPadding
-                )
             }
         }
 
-        if (pdfUriState != null) {
-            //sharePdf(context = context, pdfUri = pdfUriState)
-            openPdf(context = context, pdfUri = pdfUriState, viewModel = viewModel)
-        }
-
     }
 }
-
-
-private fun openPdf(context: Context, pdfUri: Uri, viewModel: ScannerViewModel) {
-    try {
-        val openIntent = Intent(Intent.ACTION_VIEW).apply {
-            setDataAndType(pdfUri, "application/pdf")
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            //  addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) // required for non-activity contexts
-        }
-        context.startActivity(Intent.createChooser(openIntent, "Open pdf with..."))
-        viewModel.resetPdfUriState()
-        // context.startActivity(Intent.createChooser(openIntent, "Open PDF"))
-
-    } catch (e: Exception) {
-        viewModel.showSnackbar("Failed to open PDF: ${e.message}")
-    }
-}
-
 
 
 private fun sharePdf(context: Context, pdfUri: Uri) {

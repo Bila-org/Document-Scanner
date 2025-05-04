@@ -10,7 +10,7 @@ import java.io.FileOutputStream
 
 class DocScanRepository(private val context: Context) {
 
-    suspend fun savePdf( sourceUri: Uri ): Boolean{
+    suspend fun savePdf( sourceUri: Uri ): Uri? {
         return withContext(Dispatchers.IO){
             try{
                 /*
@@ -21,10 +21,10 @@ class DocScanRepository(private val context: Context) {
                         fis.copyTo(fos)
                     }
                 }
-                true
+                return@withContext getPdfUri()
             }catch (e: Exception){
                 e.printStackTrace() // For debugging
-                false // Failure
+                return@withContext null
             }
         }
     }
