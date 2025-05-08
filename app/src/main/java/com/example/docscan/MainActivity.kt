@@ -9,7 +9,6 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Modifier
 import com.example.docscan.ui.theme.DocScanTheme
@@ -45,17 +44,6 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             DocScanTheme {
-                //  val snackbarHostState = remember { SnackbarHostState() }
-                //  val scope = rememberCoroutineScope()
-                //    Box(
-                //     modifier = Modifier.fillMaxSize()
-                //   ) {
-                /*
-                SnackbarHost(
-                    hostState = snackbarHostState,
-                    modifier = Modifier.align(Alignment.BottomCenter)
-                )*/
-
                 DocScanScreen(
                     viewModel = viewModel,
                     onScanClicked = {
@@ -66,7 +54,7 @@ class MainActivity : ComponentActivity() {
                                 )
                             }
                             .addOnFailureListener {
-                                it.message?.let { it1 -> viewModel.message(it1) }
+                                it.message?.let { it1 -> viewModel.errorMessage(it1) }
                                 /* scope.launch {
                                      it.message?.let { it1 -> snackbarHostState.showSnackbar(it1) }
                                  }*/
@@ -87,10 +75,7 @@ class MainActivity : ComponentActivity() {
                             )
 
                         } catch (e: Exception) {
-                            viewModel.message("Failed to open PDF: ${e.message}")
-                            /*scope.launch {
-                                snackbarHostState.showSnackbar("Failed to open PDF: ${e.message}")
-                            }*/
+                            viewModel.errorMessage("Failed to open PDF: ${e.message}")
                         }
                     },
                     onSharePdf = {
@@ -107,16 +92,12 @@ class MainActivity : ComponentActivity() {
                                 )
                             )
                         } catch (e: Exception) {
-                            viewModel.message("Failed to share PDF: ${e.message}")
-                            /* scope.launch {
-                                 snackbarHostState.showSnackbar("Failed to share PDF: ${e.message}")
-                             }*/
+                            viewModel.errorMessage("Failed to share PDF: ${e.message}")
                         }
                     },
                     onBackClick = { finish() },
                     modifier = Modifier.fillMaxSize()
                 )
-                //  }
             }
         }
     }

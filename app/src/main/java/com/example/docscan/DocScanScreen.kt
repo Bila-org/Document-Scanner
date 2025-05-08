@@ -4,17 +4,17 @@ import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DocumentScanner
-import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Scanner
+import androidx.compose.material.icons.outlined.CameraAlt
+import androidx.compose.material.icons.outlined.DocumentScanner
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
@@ -80,6 +80,12 @@ fun DocScanMain(
         }
     }
 
+    LaunchedEffect(scanState.errorMessage) {
+        if (scanState.errorMessage.isNotBlank()) {
+            snackbarHostState.showSnackbar(scanState.errorMessage)
+        }
+    }
+
     Scaffold(topBar = {
         CenterAlignedTopAppBar(
             title = {
@@ -88,7 +94,8 @@ fun DocScanMain(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        imageVector = Icons.Default.DocumentScanner,
+                        //imageVector = Icons.Outlined.DocumentScanner,
+                        imageVector = Icons.Default.Scanner,
                         contentDescription = "Document Scan App"
                     )
                     Spacer(modifier = Modifier.width(6.dp))
@@ -106,7 +113,8 @@ fun DocScanMain(
             },
         ) {
             Icon(
-                imageVector = Icons.Default.DocumentScanner,
+                imageVector = Icons.Outlined.DocumentScanner,
+                //imageVector = Icons.Outlined.CameraAlt,
                 contentDescription = "Scan a document",
             )
         }

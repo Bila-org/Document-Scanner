@@ -10,7 +10,6 @@ import java.io.FileOutputStream
 
 class DocScanRepository(private val context: Context) {
 
-
     suspend fun savePdf(sourceUri: Uri): Uri? {
         return withContext(Dispatchers.IO) {
             try {
@@ -27,15 +26,15 @@ class DocScanRepository(private val context: Context) {
         }
     }
 
-    fun hasSavedPdf(): Boolean {
+    private fun hasSavedPdf(): Boolean {
         return getPdfFile().exists()
     }
 
-    fun getPdfFile(): File {
+    private fun getPdfFile(): File {
         return File(context.filesDir, "Scan.pdf")
     }
 
-    fun getPdfUri(): Uri? {
+    private fun getPdfUri(): Uri? {
         val file = getPdfFile()
         return if (file.exists()) {
             FileProvider.getUriForFile(

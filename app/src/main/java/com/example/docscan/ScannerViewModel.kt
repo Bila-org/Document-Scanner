@@ -104,7 +104,7 @@ class ScannerViewModel(
         }
     }
 
-    suspend fun savePdf(sourceUri: Uri): Uri? {
+    private suspend fun savePdf(sourceUri: Uri): Uri? {
         return docScanRepository.savePdf(sourceUri)
     }
 
