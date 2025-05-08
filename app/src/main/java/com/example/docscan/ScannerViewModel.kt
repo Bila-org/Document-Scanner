@@ -9,101 +9,103 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.google.mlkit.vision.documentscanner.GmsDocumentScanningResult
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 
-data class DocScanResult(
-    val imageUris: List<Uri?>,
-    val pdfUri: Uri?,
-    val pageCount: Int?
+data class ScanState(
+    val imageUris: List<Uri?> = emptyList(),
+    val hasSavedPdf: Boolean = false,
+    val isLoading: Boolean = false,
+    val pdfUri: Uri? = null,
+    val message: String = "",
+    val errorMessage: String = ""
 )
-
-sealed interface ScanState{
-    object Idle : ScanState
-    object Loading : ScanState
-    data class Success(val result: DocScanResult) : ScanState
-    data class Error(val message: String): ScanState
-}
 
 class ScannerViewModel(
     private val docScanRepository: DocScanRepository
 ) : ViewModel() {
 
-    private val _scanState = MutableStateFlow<ScanState>(ScanState.Idle)
-    val scanState : StateFlow<ScanState> = _scanState.asStateFlow()
-
-    private val _pdfUriState = MutableStateFlow<Uri?>(null)
-    val pdfUriState :StateFlow<Uri?> = _pdfUriState.asStateFlow()
+    private val _scanState = MutableStateFlow<ScanState>(ScanState())
+    val scanState: StateFlow<ScanState> = _scanState.asStateFlow()
 
 
-    private val _snackbarEvent = MutableSharedFlow<String>(extraBufferCapacity = 1)
-    val snackbarEvent = _snackbarEvent.asSharedFlow()
-
-    fun showSnackbar(message: String){
-        viewModelScope.launch {
-            _snackbarEvent.emit(message)
+    fun message(message: String) {
+        _scanState.update {
+            it.copy(
+                message = message
+            )
         }
     }
 
+    fun errorMessage(errorMessage: String) {
+        _scanState.update {
+            it.copy(
+                errorMessage = errorMessage
+            )
+        }
+    }
 
-    fun handleScanResult(data: Intent?){
-  //      _scanState.value = ScanState.Loading
-        viewModelScope.launch{
-            try{
+    fun resetScanState() {
+        _scanState.update {
+            it.copy(
+                imageUris = emptyList(),
+                hasSavedPdf = false,
+                isLoading = false,
+                pdfUri = null,
+                message = "",
+                errorMessage = ""
+            )
+        }
+    }
+
+    fun handleScanResult(data: Intent?) {
+        //      _scanState.value = ScanState.Loading
+        viewModelScope.launch {
+            try {
                 val scanResult = GmsDocumentScanningResult.fromActivityResultIntent(data)
                 val pages = scanResult?.pages?.mapNotNull {
                     it.imageUri
                 }
                 val pdf = scanResult?.pdf
+                val uri = pdf?.let {
+                    savePdf(it.uri)
+                }
 
-                _scanState.value = ScanState.Success(
-                    DocScanResult(
-                        imageUris = pages?: emptyList(),
-                        pdfUri = pdf?.uri,
-                        pageCount = pdf?.pageCount
+                _scanState.update {
+                    it.copy(
+                        imageUris = pages ?: emptyList(),
+                        hasSavedPdf = uri != null,
+                        isLoading = false,
+                        pdfUri = uri,
+                        message = (if(uri != null) {
+                            "PDf created successfully"
+                        } else {
+                            ""
+                        }).toString(),
+                        errorMessage = ""
                     )
-                )
-            }catch (e:Exception){
-                _scanState.value = ScanState.Error(
-                    e.message?: "Unknown error occurred during scanning"
-                )
-                showSnackbar("Scan failed")
-            }
-        }
+                }
 
-    }
-
-    fun savePdf(sourceUri: Uri){
-        viewModelScope.launch {
-            val isSuccess = docScanRepository.savePdf(sourceUri)
-            if(!isSuccess){
-                _scanState.value = ScanState.Error("Failed to save PDF")
-                showSnackbar("Failed to save PDF")
-            }
-            else{
-                getPdfUri()
+            } catch (e: Exception) {
+                _scanState.update {
+                    it.copy(
+                        hasSavedPdf = false,
+                        isLoading = false,
+                        pdfUri = null,
+                        message = "",
+                        errorMessage = e.message ?: "Error scanning document"
+                    )
+                }
             }
         }
     }
 
-    fun resetState(){
-        _scanState.value = ScanState.Idle
-        _pdfUriState.value = null
-    }
-
-    fun resetPdfUriState(){
-        _pdfUriState.value = null
-    }
-    private fun getPdfUri(){
-        val pdfUri = docScanRepository.getPdfUri()
-        if (pdfUri != null) {
-            _pdfUriState.value = pdfUri
-        }
+    suspend fun savePdf(sourceUri: Uri): Uri? {
+        return docScanRepository.savePdf(sourceUri)
     }
 
 
